@@ -28,6 +28,8 @@ func main() {
  */
 package exception
 
+import "reflect"
+
 // exception struct，describe information related to exceptions
 type Exception struct {
 	Id int       // exception id
@@ -67,18 +69,31 @@ func (this *TryStruct) Catch(exceptionId int, catch func(Exception)) *TryStruct 
 func (this *TryStruct) Finally(finally func()) {
 	defer func() {
 		if e := recover(); nil != e {
-			// The recover function returns the value of the Exception type.
-			// This value is also the parameter value of the panic function
-			exception := e.(Exception)
-			// Search for a specific function that handles exceptions based on the exception id
-			if catch, ok := this.catches[exception.Id]; ok {
-				// Call a function that handles exceptions
-				catch(exception)
+			if reflect.TypeOf(e).String() == "Exception" {
+				// The recover function returns the value of the Exception type.
+				// This value is also the parameter value of the panic function
+				exception := e.(Exception)
+				// Search for a specific function that handles exceptions based on the exception id
+				if catch, ok := this.catches[exception.Id]; ok {
+					// Call a function that handles exceptions
+					catch(exception)
+				}
+			} else {
+				// The exception thrown by the system，exception id is -1
+				exception := Exception{-1,e.(error).Error()}
+				// if the exception handler is specified，it will be called.
+				if catch, ok := this.catches[-1]; ok {
+					catch(exception)
+				}
+
 			}
+
 			// Call the function that handles the finally part
 			finally()
 		}
 	}()
+
+
 	// Call the function that handles the try part
 	this.try()
 }
